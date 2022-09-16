@@ -4,7 +4,7 @@ import hpp from 'hpp';
 import cors from 'cors';
 import compression from 'compression';
 import helmet from 'helmet';
-import cookerSession from 'cookie-session';
+import cookieSession from 'cookie-session';
 import HTTP_STATUS from 'http-status-codes';
 import 'express-async-errors';
 import { config } from './config';
@@ -30,7 +30,7 @@ export class ChattyServer{
   }
 
   private securityMiddleware(app: Application): void {
-    app.use(cookerSession({
+    app.use(cookieSession({
       name: 'session',
       keys: [config.SECRET_KEY_ONE!, config.SECRET_KEY_TWO!],
       maxAge: 24 * 7 * 3600000,
