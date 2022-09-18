@@ -12,8 +12,11 @@ import { Server } from 'socket.io';
 import { createClient } from 'redis';
 import { createAdapter } from '@socket.io/redis-adapter';
 import applicationRoutes from './routes';
+import { CustomError, IErrorResponce } from './shared/globals/helpers/error-handler';
+import Logger from 'bunyan';
 
 const SERVER_PORT = 5000;
+const log: Logger = config.createLogger('server');
 
 export class ChattyServer{
   private app: Application;
@@ -57,7 +60,19 @@ export class ChattyServer{
     applicationRoutes(app);
   }
 
-  private globalErrorHandler(app: Application): void {}
+  private globalErrorHandler(app: Application): void {
+    app.all('*', (req: Request, res: Response) => {
+      res.status(HTTP_STATUS.NOT_FOUND).json({ message: `${req.originalUrl} not found` });
+    });
+
+    app.use((error: IErrorResponce, _req: Request, res: Response, next: NextFunction) => {
+      log.error(error);
+      if (error instanceof CustomError) {
+        return res.status(error.statusCode).json(error.serializeErrors());
+      }
+      next();
+    })
+  }
 
   private async startServer(app: Application): Promise<void> {
     try{
@@ -66,7 +81,7 @@ export class ChattyServer{
       const socketIO: Server = await this.createSocketIO(httpServer);
       this.socketIOConnections(socketIO);
     } catch(error) {
-      console.log(error);
+      log.error(error);
     }
   }
 
@@ -85,9 +100,9 @@ export class ChattyServer{
   }
 
   private startHttpServer(httpServer: http.Server): void {
-    console.log(`Server has started with process ${process.pid}`);
+    log.info(`Server has started with process ${process.pid}`);
     httpServer.listen(SERVER_PORT, () => {
-      console.log(`Server running on port ${SERVER_PORT}`)
+      log.info(`Server running on port ${SERVER_PORT}`)
     })
   }
 
